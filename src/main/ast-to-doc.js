@@ -1,6 +1,7 @@
 import AstPath from "../common/ast-path.js";
 import { cursor } from "../document/builders.js";
 import { inheritLabel } from "../document/utils.js";
+import { assertNonPromise } from "../utils/assert-non-promise.js";
 import { attachComments } from "./comments/attach.js";
 import { printComments, ensureAllCommentsPrinted } from "./comments/print.js";
 import { printEmbeddedLanguages } from "./multiparser.js";
@@ -48,6 +49,70 @@ async function printAstToDoc(ast, options) {
     undefined,
     embeds,
   );
+
+  ensureAllCommentsPrinted(options);
+
+  return doc;
+
+  function mainPrint(selector, args) {
+    if (selector === undefined || selector === path) {
+      return mainPrintInternal(args);
+    }
+
+    if (Array.isArray(selector)) {
+      return path.call(() => mainPrintInternal(args), ...selector);
+    }
+
+    return path.call(() => mainPrintInternal(args), selector);
+  }
+
+  function mainPrintInternal(args) {
+    ensurePrintingNode(path);
+
+    const value = path.node;
+
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    const shouldCache =
+      value && typeof value === "object" && args === undefined;
+
+    if (shouldCache && cache.has(value)) {
+      return cache.get(value);
+    }
+
+    const doc = callPluginPrintFunction(path, options, mainPrint, args, embeds);
+
+    if (shouldCache) {
+      cache.set(value, doc);
+    }
+
+    return doc;
+  }
+}
+
+function printAstToDocSync(ast, options) {
+  ({ ast } = prepareToPrintSync(ast, options));
+
+  const cache = new Map();
+  const path = new AstPath(ast);
+
+  const ensurePrintingNode = createPrintPreCheckFunction(options);
+  const embeds = new Map();
+
+  printEmbeddedLanguages(path, mainPrint, options, printAstToDoc, embeds);
+
+  // Only the root call of the print method is awaited.
+  // This is done to make things simpler for plugins that don't use recursive printing.
+  const doc = callPluginPrintFunction(
+    path,
+    options,
+    mainPrint,
+    undefined,
+    embeds,
+  );
+  assertNonPromise(doc);
 
   ensureAllCommentsPrinted(options);
 
@@ -143,4 +208,23 @@ async function prepareToPrint(ast, options) {
   return { ast, comments };
 }
 
-export { printAstToDoc, prepareToPrint };
+function prepareToPrintSync(ast, options) {
+  const comments = ast.comments ?? [];
+  options[Symbol.for("comments")] = comments;
+  options[Symbol.for("tokens")] = ast.tokens ?? [];
+  // For JS printer to ignore attached comments
+  options[Symbol.for("printedComments")] = new Set();
+
+  attachComments(ast, options);
+
+  const {
+    printer: { preprocess },
+  } = options;
+
+  ast = preprocess ? preprocess(ast, options) : ast;
+  assertNonPromise(ast);
+
+  return { ast, comments };
+}
+
+export { printAstToDoc, printAstToDocSync, prepareToPrint };

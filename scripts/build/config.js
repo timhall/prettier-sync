@@ -405,6 +405,10 @@ const nonPluginUniversalFiles = [
       replaceDiffPackageEntry("lib/diff/array.js"),
     ],
   },
+  {
+    input: "src/sync.js",
+    umdVariableName: "prettier",
+  },
 ].map((file) => {
   const {
     input,

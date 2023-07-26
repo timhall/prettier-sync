@@ -18,7 +18,7 @@ import { printAstToDoc, prepareToPrint } from "./ast-to-doc.js";
 import { calculateRange } from "./range-util.js";
 import getCursorNode from "./get-cursor-node.js";
 
-const BOM = "\uFEFF";
+export const BOM = "\uFEFF";
 
 const CURSOR = Symbol("cursor");
 
@@ -216,7 +216,7 @@ function normalizeIndexes(text, options) {
   return { ...options, cursorOffset, rangeStart, rangeEnd };
 }
 
-function normalizeInputAndOptions(text, options) {
+export function normalizeInputAndOptions(text, options) {
   let { cursorOffset, rangeStart, rangeEnd, endOfLine } = normalizeIndexes(
     text,
     options,
