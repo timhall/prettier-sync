@@ -1,6 +1,6 @@
 {
-  "name": "prettier",
-  "version": "3.1.0-dev",
+  "name": "@timhall/prettier-sync",
+  "version": "3.0.0",
   "description": "Prettier is an opinionated code formatter",
   "bin": "./bin/prettier.cjs",
   "repository": "prettier/prettier",
@@ -26,6 +26,7 @@
   "files": [
     "index.js",
     "standalone.js",
+    "sync.js",
     "src",
     "bin"
   ],
